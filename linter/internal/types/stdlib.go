@@ -51,6 +51,7 @@ func prepareStdlib(g *typeGraph) {
 		"isOdd":      g.newSimpleFuncType(boolType, "x"),
 		"isInteger":  g.newSimpleFuncType(boolType, "x"),
 		"isDecimal":  g.newSimpleFuncType(boolType, "x"),
+		"isNull":     g.newSimpleFuncType(boolType, "x"),
 
 		// Mathematical utilities
 		"abs":      g.newSimpleFuncType(numberType, "n"),

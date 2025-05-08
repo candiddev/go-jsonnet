@@ -2535,6 +2535,11 @@ func builtInObjectRemoveKey(i *interpreter, objv value, keyv value) (value, erro
 	), nil
 }
 
+func builtinIsNull(i *interpreter, strv value) (value, error) {
+    _, isNull := strv.(*valueNull)
+    return makeValueBoolean(isNull), nil
+}
+
 // Utils for builtins - TODO(sbarzowski) move to a separate file in another commit
 
 type builtin interface {
@@ -2892,6 +2897,7 @@ var funcBuiltins = buildBuiltinMap([]builtin{
 	&unaryBuiltin{name: "sum", function: builtinSum, params: ast.Identifiers{"arr"}},
 	&unaryBuiltin{name: "avg", function: builtinAvg, params: ast.Identifiers{"arr"}},
 	&binaryBuiltin{name: "contains", function: builtinContains, params: ast.Identifiers{"arr", "elem"}},
+	&unaryBuiltin{name: "isNull", function: builtinIsNull, params: ast.Identifiers{"x"}},
 
 	// internal
 	&unaryBuiltin{name: "$objectFlatMerge", function: builtinUglyObjectFlatMerge, params: ast.Identifiers{"x"}},
