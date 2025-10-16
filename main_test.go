@@ -517,3 +517,20 @@ func TestEvalUnusualFilenames(t *testing.T) {
 		})
 	}
 }
+
+func TestEvalCachedErrorTwice(t *testing.T) {
+	// Evaluate the same erroneous file twice in the same VM.
+	// See https://github.com/google/go-jsonnet/issues/822
+	vm := MakeVM()
+	_, err1 := vm.EvaluateFile("testdata/syntax_error.jsonnet")
+	if err1 == nil {
+		t.Fatal("expected an error")
+	}
+	_, err2 := vm.EvaluateFile("testdata/syntax_error.jsonnet")
+	if err2 == nil {
+		t.Fatal("expected an error")
+	}
+	if err1.Error() != err2.Error() {
+		t.Fatalf("different error on the second run:\n1st: %q\n2nd: %q", err1, err2)
+	}
+}
