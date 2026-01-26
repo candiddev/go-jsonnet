@@ -258,6 +258,16 @@ func TestNumber(t *testing.T) {
 			{kind: tokenOperator, data: "+"},
 			{kind: tokenNumber, data: "10"},
 		}},
+		{"1.2.3.4", "", Tokens{
+			{kind: tokenNumber, data: "1.2"},
+			{kind: tokenDot, data: "."},
+			{kind: tokenNumber, data: "3.4"},
+		}},
+		{"1e2.34", "", Tokens{
+			{kind: tokenNumber, data: "1e2"},
+			{kind: tokenDot, data: "."},
+			{kind: tokenNumber, data: "34"},
+		}},
 		{"1.+3", "snippet:1:3 Couldn't lex number, junk after decimal point: '+'", Tokens{}},
 		{"1e!", "snippet:1:3 Couldn't lex number, junk after 'E': '!'", Tokens{}},
 		{"1e+!", "snippet:1:4 Couldn't lex number, junk after exponent sign: '!'", Tokens{}},
@@ -286,6 +296,16 @@ func TestNumberSeparators(t *testing.T) {
 		{"1.1_2e100", "", Tokens{{kind: tokenNumber, data: "1.12e100"}}},
 		{"1.1e-10_1", "", Tokens{{kind: tokenNumber, data: "1.1e-101"}}},
 		{"9.109_383_56e-31", "", Tokens{{kind: tokenNumber, data: "9.10938356e-31"}}},
+		{"1_2.3_4.5_6.7_8", "", Tokens{
+			{kind: tokenNumber, data: "12.34"},
+			{kind: tokenDot, data: "."},
+			{kind: tokenNumber, data: "56.78"},
+		}},
+		{"1e2_3e4", "", Tokens{
+			{kind: tokenNumber, data: "1e23"},
+			{kind: tokenIdentifier, data: "e4"},
+		}},
+		{"0_5", "snippet:1:2 Couldn't lex number, _ not allowed after leading 0", Tokens{}},
 		{"123456_!", "snippet:1:8 Couldn't lex number, junk after '_': '!'", Tokens{}},
 		{"123__456", "snippet:1:5 Couldn't lex number, junk after '_': '_'", Tokens{}},
 		{"1_200_.0", "snippet:1:7 Couldn't lex number, junk after '_': '.'", Tokens{}},

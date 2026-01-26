@@ -477,9 +477,10 @@ func (l *lexer) lexNumber() error {
 		numBegin numLexState = iota
 		numAfterZero
 		numAfterOneToNine
+		numAfterIntUnderscore
 		numAfterDot
 		numAfterDigit
-		numAfterUnderscore
+		numAfterFracUnderscore
 		numAfterE
 		numAfterExpSign
 		numAfterExpDigit
@@ -509,8 +510,9 @@ outerLoop:
 			case 'e', 'E':
 				state = numAfterE
 			case '_':
-				state = numAfterUnderscore
-
+				return l.makeStaticErrorPoint(
+					fmt.Sprintf("Couldn't lex number, _ not allowed after leading 0"),
+					l.location())
 			default:
 				break outerLoop
 			}
@@ -523,9 +525,19 @@ outerLoop:
 			case r >= '0' && r <= '9':
 				state = numAfterOneToNine
 			case r == '_':
-				state = numAfterUnderscore
+				state = numAfterIntUnderscore
 			default:
 				break outerLoop
+			}
+		case numAfterIntUnderscore:
+			// The only valid transition out of _ is to a digit.
+			switch {
+			case r >= '0' && r <= '9':
+				state = numAfterOneToNine
+			default:
+				return l.makeStaticErrorPoint(
+					fmt.Sprintf("Couldn't lex number, junk after '_': %v", strconv.QuoteRuneToASCII(r)),
+					l.location())
 			}
 		case numAfterDot:
 			switch {
@@ -543,16 +555,15 @@ outerLoop:
 			case r >= '0' && r <= '9':
 				state = numAfterDigit
 			case r == '_':
-				state = numAfterUnderscore
+				state = numAfterFracUnderscore
 			default:
 				break outerLoop
 			}
-
-		case numAfterUnderscore:
+		case numAfterFracUnderscore:
 			// The only valid transition out of _ is to a digit.
 			switch {
 			case r >= '0' && r <= '9':
-				state = numAfterOneToNine
+				state = numAfterDigit
 			default:
 				return l.makeStaticErrorPoint(
 					fmt.Sprintf("Couldn't lex number, junk after '_': %v", strconv.QuoteRuneToASCII(r)),
