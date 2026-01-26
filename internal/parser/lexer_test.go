@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,7 @@ limitations under the License.
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-jsonnet/ast"
@@ -233,85 +234,38 @@ func TestMinus(t *testing.T) {
 	})
 }
 
-func TestNumber0(t *testing.T) {
-	SingleTest(t, "0", "", Tokens{
-		{kind: tokenNumber, data: "0"},
-	})
-}
-
-func TestNumber1(t *testing.T) {
-	SingleTest(t, "1", "", Tokens{
-		{kind: tokenNumber, data: "1"},
-	})
-}
-
-func TestNumber1_0(t *testing.T) {
-	SingleTest(t, "1.0", "", Tokens{
-		{kind: tokenNumber, data: "1.0"},
-	})
-}
-
-func TestNumber0_10(t *testing.T) {
-	SingleTest(t, "0.10", "", Tokens{
-		{kind: tokenNumber, data: "0.10"},
-	})
-}
-
-func TestNumber0e100(t *testing.T) {
-	SingleTest(t, "0e100", "", Tokens{
-		{kind: tokenNumber, data: "0e100"},
-	})
-}
-
-func TestNumber1e100(t *testing.T) {
-	SingleTest(t, "1e100", "", Tokens{
-		{kind: tokenNumber, data: "1e100"},
-	})
-}
-
-func TestNumber1_1e100(t *testing.T) {
-	SingleTest(t, "1.1e100", "", Tokens{
-		{kind: tokenNumber, data: "1.1e100"},
-	})
-}
-
-func TestNumber1_1e_100(t *testing.T) {
-	SingleTest(t, "1.1e-100", "", Tokens{
-		{kind: tokenNumber, data: "1.1e-100"},
-	})
-}
-
-func TestNumber1_1ep100(t *testing.T) {
-	SingleTest(t, "1.1e+100", "", Tokens{
-		{kind: tokenNumber, data: "1.1e+100"},
-	})
-}
-
-func TestNumber0100(t *testing.T) {
-	SingleTest(t, "0100", "", Tokens{
-		{kind: tokenNumber, data: "0"},
-		{kind: tokenNumber, data: "100"},
-	})
-}
-
-func TestNumber10p10(t *testing.T) {
-	SingleTest(t, "10+10", "", Tokens{
-		{kind: tokenNumber, data: "10"},
-		{kind: tokenOperator, data: "+"},
-		{kind: tokenNumber, data: "10"},
-	})
-}
-
-func TestNumber1_p3(t *testing.T) {
-	SingleTest(t, "1.+3", "snippet:1:3 Couldn't lex number, junk after decimal point: '+'", Tokens{})
-}
-
-func TestNumber1eExc(t *testing.T) {
-	SingleTest(t, "1e!", "snippet:1:3 Couldn't lex number, junk after 'E': '!'", Tokens{})
-}
-
-func TestNumber1epExc(t *testing.T) {
-	SingleTest(t, "1e+!", "snippet:1:4 Couldn't lex number, junk after exponent sign: '!'", Tokens{})
+func TestNumber(t *testing.T) {
+	for _, c := range []struct {
+		input  string
+		err    string
+		tokens Tokens
+	}{
+		{"0", "", Tokens{{kind: tokenNumber, data: "0"}}},
+		{"1", "", Tokens{{kind: tokenNumber, data: "1"}}},
+		{"1.0", "", Tokens{{kind: tokenNumber, data: "1.0"}}},
+		{"0.10", "", Tokens{{kind: tokenNumber, data: "0.10"}}},
+		{"0e100", "", Tokens{{kind: tokenNumber, data: "0e100"}}},
+		{"1e100", "", Tokens{{kind: tokenNumber, data: "1e100"}}},
+		{"1.1e100", "", Tokens{{kind: tokenNumber, data: "1.1e100"}}},
+		{"1.1e-100", "", Tokens{{kind: tokenNumber, data: "1.1e-100"}}},
+		{"1.1e+100", "", Tokens{{kind: tokenNumber, data: "1.1e+100"}}},
+		{"0100", "", Tokens{
+			{kind: tokenNumber, data: "0"},
+			{kind: tokenNumber, data: "100"},
+		}},
+		{"10+10", "", Tokens{
+			{kind: tokenNumber, data: "10"},
+			{kind: tokenOperator, data: "+"},
+			{kind: tokenNumber, data: "10"},
+		}},
+		{"1.+3", "snippet:1:3 Couldn't lex number, junk after decimal point: '+'", Tokens{}},
+		{"1e!", "snippet:1:3 Couldn't lex number, junk after 'E': '!'", Tokens{}},
+		{"1e+!", "snippet:1:4 Couldn't lex number, junk after exponent sign: '!'", Tokens{}},
+	} {
+		t.Run(fmt.Sprintf("number %q", c.input), func(t *testing.T) {
+			SingleTest(t, c.input, c.err, c.tokens)
+		})
+	}
 }
 
 func TestDoublestring1(t *testing.T) {
