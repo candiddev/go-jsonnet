@@ -358,21 +358,7 @@ func (l *lexer) resetTokenStart() {
 	l.tokenStartLoc = l.location()
 }
 
-// tokenKindPostprocessors defines a transformation of the lexed token string
-// before it is stored in the tokens list. It is optional for each token kind.
-var tokenKindPostprocessors = map[tokenKind]func(string) string{
-	tokenNumber: func(s string) string {
-		// Get rid of underscore digit separators.
-		return strings.ReplaceAll(s, "_", "")
-	},
-}
-
 func (l *lexer) emitFullToken(kind tokenKind, data, stringBlockIndent, stringBlockTermIndent string) {
-	// Run the postprocessor if the token kind has one defined.
-	if pp, ok := tokenKindPostprocessors[kind]; ok {
-		data = pp(data)
-	}
-
 	l.tokens = append(l.tokens, token{
 		kind:                  kind,
 		fodder:                l.fodder,
@@ -487,6 +473,7 @@ func (l *lexer) lexNumber() error {
 		numAfterExpUnderscore
 	)
 
+	var cb bytes.Buffer
 	state := numBegin
 
 outerLoop:
@@ -611,10 +598,14 @@ outerLoop:
 			}
 		}
 
+		if r != '_' {
+			cb.WriteRune(r)
+		}
 		l.next()
 	}
 
-	l.emitToken(tokenNumber)
+	l.emitFullToken(tokenNumber, cb.String(), "", "")
+	l.resetTokenStart()
 	return nil
 }
 
