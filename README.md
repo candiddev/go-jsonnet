@@ -1,19 +1,19 @@
 # go-jsonnet
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis] [![Coverage Status Widget]][Coverage Status]
+[![GoDoc Widget]][GoDoc] [![Coverage Status Widget]][Coverage Status]
 
 [GoDoc]: https://godoc.org/github.com/google/go-jsonnet
 [GoDoc Widget]: https://godoc.org/github.com/google/go-jsonnet?status.png
-[Travis]: https://travis-ci.org/google/go-jsonnet
-[Travis Widget]: https://travis-ci.org/google/go-jsonnet.svg?branch=master
 [Coverage Status Widget]: https://coveralls.io/repos/github/google/go-jsonnet/badge.svg?branch=master
 [Coverage Status]: https://coveralls.io/github/google/go-jsonnet?branch=master
 
-This an implementation of [Jsonnet](http://jsonnet.org/) in pure Go. It is a feature complete, production-ready implementation. It is compatible with the original [Jsonnet C++ implementation](https://github.com/google/jsonnet). Bindings to C and Python are available (but not battle-tested yet).
+This an implementation of [Jsonnet](http://jsonnet.org/) in pure Go. It is a feature complete, production-ready implementation. Bindings to C and Python are available (but not battle-tested).
 
 This code is known to work on Go 1.23 and above. We recommend always using the newest stable release of Go.
 
-## Installation instructions
+Jsonnet can be used on the command line to evaluate Jsonnet input files and produce JSON, Yaml, or other outputs, or it can be used as a library.
+
+## Installing the command line tool
 
 ```shell
 # Using `go get` to install binaries is deprecated.
@@ -30,6 +30,8 @@ It's also available on Homebrew:
 brew install go-jsonnet
 ```
 
+## Installing tools for working with Jsonnet code (formatter, linter)
+
 `jsonnetfmt` and `jsonnet-lint` are also available as [pre-commit](https://github.com/pre-commit/pre-commit) hooks. Example `.pre-commit-config.yaml`:
 ```yaml
 - repo: https://github.com/google/go-jsonnet
@@ -38,6 +40,8 @@ brew install go-jsonnet
     - id: jsonnet-format
     - id: jsonnet-lint
 ```
+
+## Using the library
 
 It can also be embedded in your own Go programs as a library:
 
@@ -119,10 +123,10 @@ Additionally if any files were moved around, see the section [Keeping the Bazel 
 
 ## Building libjsonnet.wasm
 
-The [WASM](https://webassembly.org/) build can be used to embed go-jsonnet for use (client side) in the web browser. This is used for the live code snippets on https://jsonnet.org/
+The [WASM](https://webassembly.org/) build can be used to embed go-jsonnet for use (client side) in the web browser, or in other WASM execution environments. For example, this is used to evaluate the live code snippets on https://jsonnet.org/
 
 ```bash
-GOOS=js GOARCH=wasm go build -o libjsonnet.wasm ./cmd/wasm 
+GOOS=js GOARCH=wasm go build -o libjsonnet.wasm ./cmd/wasm
 ```
 
 Or if using bazel:
@@ -207,8 +211,6 @@ For performance reasons we perform preprocessing on the standard library, so for
 ```bash
 go run cmd/dumpstdlibast/dumpstdlibast.go cpp-jsonnet/stdlib/std.jsonnet > astgen/stdast.go
 ```
-
-**The
 
 The above command creates the _astgen/stdast.go_ file which puts the desugared standard library into the right data structures, which lets us avoid the parsing overhead during execution. Note that this step is not necessary to perform manually when building with Bazel; the Bazel target regenerates the _astgen/stdast.go_ (writing it into Bazel's build sandbox directory tree) file when necessary.
 
