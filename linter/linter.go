@@ -2,13 +2,12 @@
 package linter
 
 import (
+	"io"
+
 	jsonnet "github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/google/go-jsonnet/internal/errors"
 	"github.com/google/go-jsonnet/internal/parser"
-	"io"
-	"path/filepath"
-	"strings"
 
 	"github.com/google/go-jsonnet/linter/internal/common"
 	"github.com/google/go-jsonnet/linter/internal/traversal"
@@ -46,25 +45,22 @@ type nodeWithLocation struct {
 
 // Lint analyses a node and reports any issues it encounters to an error writer.
 func lint(vm *jsonnet.VM, nodes []nodeWithLocation, errWriter *ErrorWriter) {
-	variablesInFile := make(map[string]common.VariableInfo)
-
 	std := common.Variable{
 		Name:         "std",
 		Occurences:   nil,
 		VariableKind: common.VarStdlib,
 	}
 
-	findVariables := func(node nodeWithLocation) *common.VariableInfo {
-		return variables.FindVariables(node.node, variables.Environment{"std": &std, "$std": &std})
-	}
+	stdEnv := variables.Environment{"std": &std, "$std": &std}
 
 	for _, node := range nodes {
 		roots := make(map[string]ast.Node)
 		roots[node.path] = node.node
 		getImports(vm, node, roots, errWriter)
 
+		variablesInFile := make(map[string]common.VariableInfo)
 		for importedPath, rootNode := range roots {
-			variablesInFile[importedPath] = *findVariables(nodeWithLocation{rootNode, importedPath})
+			variablesInFile[importedPath] = *variables.FindVariables(rootNode, stdEnv)
 		}
 
 		vars := make(map[string]map[ast.Node]*common.Variable)
@@ -72,9 +68,7 @@ func lint(vm *jsonnet.VM, nodes []nodeWithLocation, errWriter *ErrorWriter) {
 			vars[importedPath] = info.VarAt
 		}
 
-		variableInfo := findVariables(node)
-
-		for _, v := range variableInfo.Variables {
+		for _, v := range variablesInFile[node.path].Variables {
 			if len(v.Occurences) == 0 && v.VariableKind == common.VarRegular && v.Name != "$" {
 				errWriter.writeError(vm, errors.MakeStaticError("Unused variable: "+string(v.Name), v.LocRange))
 			}
@@ -82,20 +76,6 @@ func lint(vm *jsonnet.VM, nodes []nodeWithLocation, errWriter *ErrorWriter) {
 		ec := common.ErrCollector{}
 
 		types.Check(node.node, roots, vars, func(currentPath, importedPath string) ast.Node {
-			// try to resolve the imported node from the already calculated list of roots
-			// if this fails, reimport the node
-			idx := strings.LastIndex(currentPath, "/")
-			var currentDir = ""
-			if idx != -1 {
-				currentDir = currentPath[:idx]
-			}
-
-			relativePath := filepath.Join(currentDir, importedPath)
-			node := roots[relativePath]
-			if node != nil {
-				return node
-			}
-
 			node, _, err := vm.ImportAST(currentPath, importedPath)
 			if err != nil {
 				return nil
