@@ -2502,7 +2502,7 @@ func builtinRemoveAt(i *interpreter, arrv value, idxv value) (value, error) {
 	return makeValueArray(newArr), nil
 }
 
-func builtInObjectRemoveKey(i *interpreter, objv value, keyv value) (value, error) {
+func builtinObjectRemoveKey(i *interpreter, objv value, keyv value) (value, error) {
 	obj, err := i.getObject(objv)
 	if err != nil {
 		return nil, err
@@ -2512,34 +2512,14 @@ func builtInObjectRemoveKey(i *interpreter, objv value, keyv value) (value, erro
 		return nil, err
 	}
 
-	newFields := make(simpleObjectFieldMap)
-	simpleObj := obj.uncached.(*simpleObject)
-	for fieldName, fieldVal := range simpleObj.fields {
-		if fieldName == key.getGoString() {
-			// skip the field which needs to be deleted
-			continue
-		}
-
-		newFields[fieldName] = simpleObjectField{
-			hide: fieldVal.hide,
-			field: &bindingsUnboundField{
-				inner:    fieldVal.field,
-				bindings: simpleObj.upValues,
-			},
-		}
-	}
-
-	return makeValueSimpleObject(
-		nil,
-		newFields,
-		[]unboundField{}, // No asserts allowed
-		nil,
-	), nil
+	restrictedObj := makeValueRestrictedObject(obj)
+	delete(restrictedObj.uncached.(*restrictedObject).retainedFields, key.getGoString())
+	return restrictedObj, nil
 }
 
 func builtinIsNull(i *interpreter, v value) (value, error) {
-    _, isNull := v.(*valueNull)
-    return makeValueBoolean(isNull), nil
+	_, isNull := v.(*valueNull)
+	return makeValueBoolean(isNull), nil
 }
 
 // Utils for builtins - TODO(sbarzowski) move to a separate file in another commit
@@ -2832,7 +2812,7 @@ var funcBuiltins = buildBuiltinMap([]builtin{
 	&binaryBuiltin{name: "equals", function: builtinEquals, params: ast.Identifiers{"x", "y"}},
 	&binaryBuiltin{name: "objectFieldsEx", function: builtinObjectFieldsEx, params: ast.Identifiers{"obj", "hidden"}},
 	&ternaryBuiltin{name: "objectHasEx", function: builtinObjectHasEx, params: ast.Identifiers{"obj", "fname", "hidden"}},
-	&binaryBuiltin{name: "objectRemoveKey", function: builtInObjectRemoveKey, params: ast.Identifiers{"obj", "key"}},
+	&binaryBuiltin{name: "objectRemoveKey", function: builtinObjectRemoveKey, params: ast.Identifiers{"obj", "key"}},
 	&unaryBuiltin{name: "type", function: builtinType, params: ast.Identifiers{"x"}},
 	&unaryBuiltin{name: "char", function: builtinChar, params: ast.Identifiers{"n"}},
 	&unaryBuiltin{name: "codepoint", function: builtinCodepoint, params: ast.Identifiers{"str"}},
