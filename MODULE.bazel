@@ -3,8 +3,8 @@ module(name = "jsonnet_go", version = "0.21.0")
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # NB: update_cpp_jsonnet.sh looks for these.
-CPP_JSONNET_SHA256 = "8ba7bffd0a620f45337da9817f47fe23078b0da521bacbd94a333eab4e79c598"
-CPP_JSONNET_GITHASH = "bd1f67e3058bfcea92bcce2f0f750e7dd6fe054b"
+CPP_JSONNET_SHA256 = "c7d8a7f144c607211fcbc9426c5debed318436ec04516e75f9287c09362e739f"
+CPP_JSONNET_GITHASH = "149433be5f628d91806136a8404f9c7441e9f748"
 CPP_JSONNET_RELEASE_VERSION = ""
 
 CPP_JSONNET_STRIP_PREFIX = (
