@@ -1592,6 +1592,9 @@ func builtinParseYAML(i *interpreter, str value) (value, error) {
 		elems = append(elems, elem)
 	}
 
+	if len(elems) == 0 {
+		return &nullValue, nil
+	}
 	if d.IsStream() {
 		return jsonToValue(i, elems)
 	}
