@@ -223,7 +223,13 @@ func (cache *importCache) importCode(importedFrom, importedPath string, i *inter
 // FileImporter imports data from the filesystem.
 type FileImporter struct {
 	fsCache map[string]*fsCacheEntry
-	JPaths  []string
+
+	// JPaths is a slice of extra paths to search for relative imports.
+	// Note this is not an isolation or restriction mechanism; absolute
+	// import paths or paths that traverse up the directory hierarchy
+	// are both allowed, so imports can access any file path regardless
+	// of the content of JPaths.
+	JPaths []string
 }
 
 type fsCacheEntry struct {

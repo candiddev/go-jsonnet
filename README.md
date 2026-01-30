@@ -13,6 +13,15 @@ This code is known to work on Go 1.23 and above. We recommend always using the n
 
 Jsonnet can be used on the command line to evaluate Jsonnet input files and produce JSON, Yaml, or other outputs, or it can be used as a library.
 
+**Security note:** If you are running a system that evaluates untrusted Jsonnet
+code, extra care should be used to defend against data exfiltration risks. By
+default, the `import`, `importstr` and `importbin` language constructs can read
+from any path accessible to the Jsonnet process. The Jsonnet library allows you
+to provide your own logic for processing imports, which is one way to restrict
+imports to known safe sources. You could also consider running Jsonnet inside a
+carefully configured gVisor or Firecracker container or other secure container
+system to provide more general isolation if evaluating untrusted code.
+
 ## Installing the command line tool
 
 ```shell
