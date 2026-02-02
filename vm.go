@@ -237,7 +237,7 @@ func (vm *VM) evaluateSnippet(diagnosticFileName ast.DiagnosticFileName, filenam
 	return output, nil
 }
 
-func getAbsPath(path string, followSymlinks bool) (string, error) {
+func getAbsPath(path string, canonicalPaths bool) (string, error) {
 	var absPath string
 
 	var err error
@@ -252,7 +252,7 @@ func getAbsPath(path string, followSymlinks bool) (string, error) {
 		absPath = strings.Join([]string{wd, path}, string(filepath.Separator))
 	}
 
-	if followSymlinks {
+	if canonicalPaths {
 		absPath, err = filepath.EvalSymlinks(absPath)
 		if err != nil {
 			return "", err
@@ -262,7 +262,7 @@ func getAbsPath(path string, followSymlinks bool) (string, error) {
 	return absPath, nil
 }
 
-func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map[string]struct{}, stackTrace *[]TraceFrame, followSymlinks bool) (err error) {
+func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map[string]struct{}, stackTrace *[]TraceFrame, canonicalPaths bool) (err error) {
 	var cleanedAbsPath string
 	switch i := (*node).(type) {
 	case *ast.Import:
@@ -273,7 +273,7 @@ func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map
 		}
 		cleanedAbsPath = foundAt
 		if _, isFileImporter := vm.importer.(*FileImporter); isFileImporter {
-			cleanedAbsPath, err = getAbsPath(foundAt, followSymlinks)
+			cleanedAbsPath, err = getAbsPath(foundAt, canonicalPaths)
 			if err != nil {
 				*stackTrace = append([]TraceFrame{{Loc: *i.Loc()}}, *stackTrace...)
 				return err
@@ -284,7 +284,7 @@ func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map
 			return nil
 		}
 		dependencies[cleanedAbsPath] = struct{}{}
-		err = vm.findDependencies(foundAt, &node, dependencies, stackTrace, followSymlinks)
+		err = vm.findDependencies(foundAt, &node, dependencies, stackTrace, canonicalPaths)
 		if err != nil {
 			*stackTrace = append([]TraceFrame{{Loc: *i.Loc()}}, *stackTrace...)
 			return err
@@ -297,7 +297,7 @@ func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map
 		}
 		cleanedAbsPath = foundAt
 		if _, isFileImporter := vm.importer.(*FileImporter); isFileImporter {
-			cleanedAbsPath, err = getAbsPath(foundAt, followSymlinks)
+			cleanedAbsPath, err = getAbsPath(foundAt, canonicalPaths)
 			if err != nil {
 				*stackTrace = append([]TraceFrame{{Loc: *i.Loc()}}, *stackTrace...)
 				return err
@@ -312,7 +312,7 @@ func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map
 		}
 		cleanedAbsPath = foundAt
 		if _, isFileImporter := vm.importer.(*FileImporter); isFileImporter {
-			cleanedAbsPath, err = getAbsPath(foundAt, followSymlinks)
+			cleanedAbsPath, err = getAbsPath(foundAt, canonicalPaths)
 			if err != nil {
 				*stackTrace = append([]TraceFrame{{Loc: *i.Loc()}}, *stackTrace...)
 				return err
@@ -321,7 +321,7 @@ func (vm *VM) findDependencies(filePath string, node *ast.Node, dependencies map
 		dependencies[cleanedAbsPath] = struct{}{}
 	default:
 		for _, node := range parser.Children(i) {
-			err = vm.findDependencies(filePath, &node, dependencies, stackTrace, followSymlinks)
+			err = vm.findDependencies(filePath, &node, dependencies, stackTrace, canonicalPaths)
 			if err != nil {
 				return err
 			}
@@ -462,10 +462,28 @@ func (vm *VM) EvaluateFileMulti(filename string) (files map[string]string, forma
 	return output, nil
 }
 
+type findDepsConfig struct {
+	canonicalPaths bool
+}
+
+type FindDepsOption func(c *findDepsConfig)
+
+func WithCanonicalPaths(canonicalize bool) FindDepsOption {
+	return func(c *findDepsConfig) { c.canonicalPaths = canonicalize }
+}
+
 // FindDependencies returns a sorted array of unique transitive dependencies (via import/importstr/importbin)
 // from all the given `importedPaths` which are themselves excluded from the returned array.
 // The `importedPaths` are parsed as if they were imported from a Jsonnet file located at `importedFrom`.
-func (vm *VM) FindDependencies(importedFrom string, importedPaths []string, followSymlinks bool) ([]string, error) {
+func (vm *VM) FindDependencies(importedFrom string, importedPaths []string, opts ...FindDepsOption) ([]string, error) {
+	config := findDepsConfig{
+		canonicalPaths: true,
+	}
+
+	for _, f := range opts {
+		f(&config)
+	}
+
 	var nodes []*ast.Node
 	var stackTrace []TraceFrame
 	filePaths := make([]string, len(importedPaths))
@@ -479,7 +497,7 @@ func (vm *VM) FindDependencies(importedFrom string, importedPaths []string, foll
 		}
 		cleanedAbsPath := foundAt
 		if _, isFileImporter := vm.importer.(*FileImporter); isFileImporter {
-			cleanedAbsPath, err = getAbsPath(foundAt, followSymlinks)
+			cleanedAbsPath, err = getAbsPath(foundAt, config.canonicalPaths)
 			if err != nil {
 				return nil, err
 			}
@@ -494,7 +512,7 @@ func (vm *VM) FindDependencies(importedFrom string, importedPaths []string, foll
 	}
 
 	for i, filePath := range filePaths {
-		err := vm.findDependencies(filePath, nodes[i], deps, &stackTrace, followSymlinks)
+		err := vm.findDependencies(filePath, nodes[i], deps, &stackTrace, config.canonicalPaths)
 		if err != nil {
 			err = makeRuntimeError(err.Error(), stackTrace)
 			return nil, errors.New(vm.ErrorFormatter.Format(err))
